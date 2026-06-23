@@ -1,16 +1,14 @@
 {
   "name": "core-systems-portfolio",
-  "version": "1.0.0",
-  "description": "Full-stack portfolio with Node.js, Express, SQLite",
-  "main": "server.js",
+  "version": "2.0.0",
+  "description": "Serverless portfolio with Vercel + Turso",
+  "private": true,
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "vercel dev",
+    "deploy": "vercel --prod",
+    "db:setup": "node scripts/seed.js"
   },
   "dependencies": {
-    "sql.js": "^1.11.0",
-    "cors": "^2.8.5",
-    "express": "^4.21.0",
-    "nodemailer": "^6.9.0"
+    "@libsql/client": "^0.14.0"
   }
 }
