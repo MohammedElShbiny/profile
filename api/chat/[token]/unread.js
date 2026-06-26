@@ -1,4 +1,4 @@
-const { getClient, jsonRes, errRes } = require('../../../lib/db');
+const { getClient, jsonRes, errRes, corsPreflight, getParam } = require('../../../lib/db');
 
 async function validateToken(token) {
   const db = getClient();
@@ -8,13 +8,11 @@ async function validateToken(token) {
 }
 
 module.exports = async function handler(req) {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, OPTIONS' } });
-  }
+  if (req.method === 'OPTIONS') return corsPreflight();
   if (req.method !== 'GET') return errRes('Method not allowed.', 405);
 
   try {
-    const { token } = req.query;
+    const token = getParam(req.url, 'token');
     const inquiry = await validateToken(token);
     if (!inquiry) return errRes('Invalid session token.', 404);
     const db = getClient();
@@ -25,9 +23,7 @@ module.exports = async function handler(req) {
       await db.execute({ sql: `UPDATE messages SET is_read = 1 WHERE id IN (${ids.join(',')})` });
     }
     return jsonRes({ unread });
-  } catch (err) {
+  } catch {
     return errRes('Failed to check unread messages.');
   }
 };
-
-module.exports.config = { api: { bodyParser: false } };

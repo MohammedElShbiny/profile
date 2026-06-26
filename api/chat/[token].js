@@ -1,4 +1,4 @@
-const { getClient, jsonRes, errRes, parseBody } = require('../../lib/db');
+const { getClient, jsonRes, errRes, corsPreflight, parseBody, getParam } = require('../../lib/db');
 
 async function validateToken(token) {
   const db = getClient();
@@ -8,10 +8,8 @@ async function validateToken(token) {
 }
 
 module.exports = async function handler(req) {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' } });
-  }
-  const { token } = req.query;
+  if (req.method === 'OPTIONS') return corsPreflight();
+  const token = getParam(req.url, 'token');
 
   if (req.method === 'GET') {
     try {
@@ -20,7 +18,7 @@ module.exports = async function handler(req) {
       const db = getClient();
       const result = await db.execute({ sql: 'SELECT * FROM messages WHERE inquiry_id = ? ORDER BY created_at ASC', args: [inquiry.id] });
       return jsonRes({ inquiry, messages: result.rows });
-    } catch (err) {
+    } catch {
       return errRes('Failed to fetch messages.');
     }
   }
@@ -35,12 +33,10 @@ module.exports = async function handler(req) {
       await db.execute({ sql: 'INSERT INTO messages (inquiry_id, sender, message) VALUES (?, ?, ?)', args: [inquiry.id, 'user', body.message.trim()] });
       const result = await db.execute('SELECT last_insert_rowid() as id');
       return jsonRes({ success: true, id: result.rows[0].id }, 201);
-    } catch (err) {
+    } catch {
       return errRes('Failed to send message.');
     }
   }
 
   return errRes('Method not allowed.', 405);
 };
-
-module.exports.config = { api: { bodyParser: false } };

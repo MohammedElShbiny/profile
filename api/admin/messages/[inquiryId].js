@@ -1,12 +1,10 @@
-const { getClient, checkAuth, jsonRes, errRes, parseBody } = require('../../lib/db');
+const { getClient, checkAuth, jsonRes, errRes, corsPreflight, parseBody, getParam } = require('../../lib/db');
 
 module.exports = async function handler(req) {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' } });
-  }
+  if (req.method === 'OPTIONS') return corsPreflight();
   if (!checkAuth(req)) return errRes('Unauthorized.', 401);
 
-  const { inquiryId } = req.query;
+  const inquiryId = getParam(req.url, 'inquiryId');
   const db = getClient();
 
   if (req.method === 'GET') {
@@ -15,7 +13,7 @@ module.exports = async function handler(req) {
       if (!inquiryResult.rows.length) return errRes('Inquiry not found.', 404);
       const messages = await db.execute({ sql: 'SELECT * FROM messages WHERE inquiry_id = ? ORDER BY created_at ASC', args: [inquiryId] });
       return jsonRes({ inquiry: inquiryResult.rows[0], messages: messages.rows });
-    } catch (err) {
+    } catch {
       return errRes('Failed to fetch messages.');
     }
   }
@@ -29,12 +27,10 @@ module.exports = async function handler(req) {
       await db.execute({ sql: 'INSERT INTO messages (inquiry_id, sender, message) VALUES (?, ?, ?)', args: [inquiryId, 'admin', body.message.trim()] });
       const result = await db.execute('SELECT last_insert_rowid() as id');
       return jsonRes({ success: true, id: result.rows[0].id }, 201);
-    } catch (err) {
+    } catch {
       return errRes('Failed to send message.');
     }
   }
 
   return errRes('Method not allowed.', 405);
 };
-
-module.exports.config = { api: { bodyParser: false } };

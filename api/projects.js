@@ -1,16 +1,12 @@
-const { getClient, jsonRes, errRes } = require('./lib/db');
+const { getClient, jsonRes, errRes, corsPreflight } = require('./lib/db');
 
 module.exports = async function handler(req) {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Authorization, Content-Type' } });
-  }
+  if (req.method === 'OPTIONS') return corsPreflight();
   try {
     const db = getClient();
     const result = await db.execute('SELECT * FROM projects ORDER BY sort_order ASC');
     return jsonRes(result.rows);
-  } catch (err) {
+  } catch {
     return errRes('Failed to fetch projects.');
   }
 };
-
-module.exports.config = { api: { bodyParser: false } };

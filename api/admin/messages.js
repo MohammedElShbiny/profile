@@ -1,9 +1,7 @@
-const { getClient, checkAuth, jsonRes, errRes } = require('../../lib/db');
+const { getClient, checkAuth, jsonRes, errRes, corsPreflight } = require('../lib/db');
 
 module.exports = async function handler(req) {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Allow-Headers': 'Authorization' } });
-  }
+  if (req.method === 'OPTIONS') return corsPreflight();
   if (!checkAuth(req)) return errRes('Unauthorized.', 401);
 
   try {
@@ -15,12 +13,10 @@ module.exports = async function handler(req) {
         (SELECT created_at FROM messages WHERE inquiry_id = i.id ORDER BY created_at DESC LIMIT 1) as last_message_at,
         (SELECT COUNT(*) FROM messages WHERE inquiry_id = i.id AND sender = 'user' AND is_read = 0) as unread_count
       FROM inquiries i
-      ORDER BY last_message_at DESC NULLS LAST
+      ORDER BY last_message_at IS NULL, last_message_at DESC
     `);
     return jsonRes(result.rows);
-  } catch (err) {
+  } catch {
     return errRes('Failed to fetch conversations.');
   }
 };
-
-module.exports.config = { api: { bodyParser: false } };

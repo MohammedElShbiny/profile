@@ -1,11 +1,12 @@
 {
   "name": "core-systems-portfolio",
-  "version": "2.0.0",
-  "description": "Serverless portfolio with Vercel + Turso",
+  "version": "4.0.0",
+  "description": "Multi-platform serverless portfolio with Turso",
   "private": true,
   "scripts": {
     "dev": "vercel dev",
-    "deploy": "vercel --prod",
+    "deploy:vercel": "vercel --prod",
+    "deploy:netlify": "netlify deploy --prod",
     "db:setup": "node scripts/seed.js"
   },
   "dependencies": {
