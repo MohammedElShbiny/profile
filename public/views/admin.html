@@ -338,7 +338,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   authToken = 'Basic ' + btoa(user + ':' + pass);
 
   try {
-    const res = await fetch('/api/stats', { headers: { 'Authorization': authToken } });
+    const res = await fetch('/api/admin/stats', { headers: { 'Authorization': authToken } });
     if (res.ok) {
       document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('adminApp').style.display = 'flex';
@@ -365,7 +365,7 @@ function apiHeaders() {
 async function loadDashboard() {
   try {
     const [statsRes, inquiriesRes] = await Promise.all([
-      fetch('/api/stats', { headers: { 'Authorization': authToken } }),
+      fetch('/api/admin/stats', { headers: { 'Authorization': authToken } }),
       fetch('/api/admin/inquiries', { headers: { 'Authorization': authToken } })
     ]);
     if (!statsRes.ok || !inquiriesRes.ok) {
