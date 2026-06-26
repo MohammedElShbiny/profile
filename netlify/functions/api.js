@@ -1,56 +1,19 @@
 const path = require('path');
 
-const handlers = {};
-
-function loadHandler(relativePath) {
-  const fullPath = path.join(__dirname, '..', '..', 'api', relativePath);
-  try {
-    return require(fullPath);
-  } catch {
-    return null;
-  }
+function loadHandler(name) {
+  return require(path.join(__dirname, '..', '..', 'api', name));
 }
 
-const routeMap = [
-  ['GET /api/projects', 'projects.js'],
-  ['PUT /api/projects', 'projects/[id].js'],
-  ['DELETE /api/projects', 'projects/[id].js'],
-  ['GET /api/services', 'services.js'],
-  ['PUT /api/services', 'services/[id].js'],
-  ['DELETE /api/services', 'services/[id].js'],
-  ['POST /api/contact', 'contact.js'],
-  ['GET /api/lookup', 'lookup.js'],
-  ['POST /api/init', 'init.js'],
-  ['GET /api/chat', 'chat/[token].js'],
-  ['POST /api/chat', 'chat/[token].js'],
-  ['GET /api/chat unread', 'chat/[token]/unread.js'],
-  ['GET /api/admin/stats', 'admin/stats.js'],
-  ['GET /api/admin/inquiries', 'admin/inquiries.js'],
-  ['PUT /api/admin/inquiries', 'admin/inquiries/[id].js'],
-  ['GET /api/admin/messages', 'admin/messages.js'],
-  ['GET /api/admin/messages/', 'admin/messages/[inquiryId].js'],
-  ['POST /api/admin/messages/', 'admin/messages/[inquiryId].js'],
-];
+function findHandler(method, reqPath) {
+  const p = reqPath.replace(/\/+$/, '') || '/api';
 
-function findHandler(method, path) {
-  const cleanPath = path.replace(/\/+$/, '') || '/api';
-
-  if (cleanPath === '/api/projects') return loadHandler('projects.js');
-  if (cleanPath.match(/^\/api\/projects\/\d+$/)) return loadHandler('projects/[id].js');
-  if (cleanPath === '/api/services') return loadHandler('services.js');
-  if (cleanPath.match(/^\/api\/services\/\d+$/)) return loadHandler('services/[id].js');
-  if (cleanPath === '/api/contact') return loadHandler('contact.js');
-  if (cleanPath === '/api/lookup') return loadHandler('lookup.js');
-  if (cleanPath === '/api/init') return loadHandler('init.js');
-
-  if (cleanPath.match(/^\/api\/chat\/[^/]+\/unread$/)) return loadHandler('chat/[token]/unread.js');
-  if (cleanPath.match(/^\/api\/chat\/[^/]+$/)) return loadHandler('chat/[token].js');
-
-  if (cleanPath === '/api/admin/stats') return loadHandler('admin/stats.js');
-  if (cleanPath === '/api/admin/inquiries') return loadHandler('admin/inquiries.js');
-  if (cleanPath.match(/^\/api\/admin\/inquiries\/\d+$/)) return loadHandler('admin/inquiries/[id].js');
-  if (cleanPath === '/api/admin/messages') return loadHandler('admin/messages.js');
-  if (cleanPath.match(/^\/api\/admin\/messages\/\d+$/)) return loadHandler('admin/messages/[inquiryId].js');
+  if (p === '/api/projects' || p.match(/^\/api\/projects\/\d+$/)) return loadHandler('projects.js');
+  if (p === '/api/services' || p.match(/^\/api\/services\/\d+$/)) return loadHandler('services.js');
+  if (p === '/api/contact') return loadHandler('contact.js');
+  if (p === '/api/lookup') return loadHandler('lookup.js');
+  if (p === '/api/init') return loadHandler('init.js');
+  if (p.match(/^\/api\/admin\b/)) return loadHandler('admin.js');
+  if (p.match(/^\/api\/chat\b/)) return loadHandler('chat.js');
 
   return null;
 }
@@ -83,7 +46,7 @@ exports.handler = async (event) => {
     response.headers.forEach((v, k) => { headers[k] = v; });
 
     return { statusCode: response.status, body, headers };
-  } catch (err) {
+  } catch {
     return { statusCode: 500, body: JSON.stringify({ error: 'Internal server error' }), headers: { 'Content-Type': 'application/json' } };
   }
 };

@@ -1,4 +1,4 @@
-const { getClient, jsonRes, errRes, corsPreflight, parseBody, getParam } = require('../../lib/db');
+const { getClient, jsonRes, errRes, corsPreflight, parseBody } = require('./lib/db');
 
 async function validateToken(token) {
   const db = getClient();
@@ -9,9 +9,35 @@ async function validateToken(token) {
 
 module.exports = async function handler(req) {
   if (req.method === 'OPTIONS') return corsPreflight();
-  const token = getParam(req.url, 'token');
+  const url = new URL(req.url, 'http://localhost');
+  const path = url.pathname;
 
-  if (req.method === 'GET') {
+  // Extract token from /api/chat/:token or /api/chat/:token/unread
+  const chatMatch = path.match(/^\/api\/chat\/([^/]+)(\/unread)?$/);
+  if (!chatMatch) return errRes('Not found.', 404);
+  const token = decodeURIComponent(chatMatch[1]);
+  const isUnread = !!chatMatch[2];
+
+  // GET /api/chat/:token/unread
+  if (req.method === 'GET' && isUnread) {
+    try {
+      const inquiry = await validateToken(token);
+      if (!inquiry) return errRes('Invalid session token.', 404);
+      const db = getClient();
+      const result = await db.execute({ sql: "SELECT * FROM messages WHERE inquiry_id = ? AND sender = 'admin' AND is_read = 0 ORDER BY created_at ASC", args: [inquiry.id] });
+      const unread = result.rows;
+      if (unread.length > 0) {
+        const ids = unread.map(m => m.id);
+        await db.execute({ sql: `UPDATE messages SET is_read = 1 WHERE id IN (${ids.join(',')})` });
+      }
+      return jsonRes({ unread });
+    } catch {
+      return errRes('Failed to check unread messages.');
+    }
+  }
+
+  // GET /api/chat/:token
+  if (req.method === 'GET' && !isUnread) {
     try {
       const inquiry = await validateToken(token);
       if (!inquiry) return errRes('Invalid session token.', 404);
@@ -23,7 +49,8 @@ module.exports = async function handler(req) {
     }
   }
 
-  if (req.method === 'POST') {
+  // POST /api/chat/:token
+  if (req.method === 'POST' && !isUnread) {
     try {
       const inquiry = await validateToken(token);
       if (!inquiry) return errRes('Invalid session token.', 404);
